@@ -5,8 +5,30 @@ declare const process: { env: Record<string, string | undefined> };
 
 const ALLOWED_DOMAINS = ["cascadewebsolutions.co"];
 
-function assertAllowedCompanyEmail(email: string) {
-  const domain = email.trim().toLowerCase().split("@").pop();
+// Optional comma-separated allowlist (Convex env AUTH_ALLOWED_EMAILS). When
+// set, only these exact addresses may sign up, sign in or reset a password;
+// otherwise any address on ALLOWED_DOMAINS may.
+function allowedEmails(): Set<string> | null {
+  const configured = process.env.AUTH_ALLOWED_EMAILS;
+  if (!configured) return null;
+  return new Set(
+    configured
+      .split(",")
+      .map(email => email.trim().toLowerCase())
+      .filter(Boolean),
+  );
+}
+
+export function assertAllowedCompanyEmail(email: string) {
+  const normalized = email.trim().toLowerCase();
+  const allowlist = allowedEmails();
+  if (allowlist) {
+    if (!allowlist.has(normalized)) {
+      throw new Error("This email address is not approved for this app.");
+    }
+    return;
+  }
+  const domain = normalized.split("@").pop();
   if (!domain || !ALLOWED_DOMAINS.includes(domain)) {
     throw new Error(
       "Only Cascade Web Solutions email addresses may use this app.",

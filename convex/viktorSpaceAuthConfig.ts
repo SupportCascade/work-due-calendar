@@ -3,6 +3,7 @@ import type { AuthProviderConfig } from "@convex-dev/auth/server";
 import { createViktorAuthJsProvider } from "../src/lib/viktor-spaces-access/authjs";
 import { SpaceSessionCredentials } from "./spaceSessionAuth";
 import {
+  assertAllowedCompanyEmail,
   ViktorSpacesEmail,
   ViktorSpacesPasswordReset,
 } from "./ViktorSpacesEmail";
@@ -76,6 +77,13 @@ function configuredSpaceAuthProviders(): AuthProviderConfig[] {
   if (providerNames.has("email_password")) {
     providers.push(
       Password({
+        // Runs on every flow (sign up, sign in, reset), so a removed address
+        // is locked out even if its account already exists.
+        profile(params) {
+          const email = String(params.email ?? "");
+          assertAllowedCompanyEmail(email);
+          return { email: email.trim().toLowerCase() };
+        },
         verify: ViktorSpacesEmail,
         reset: ViktorSpacesPasswordReset,
       }),

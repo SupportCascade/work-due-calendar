@@ -10,7 +10,6 @@
  * To add a new tool, first test it to see the response shape.
  */
 import { v } from "convex/values";
-import { action } from "./_generated/server";
 import { authenticatedAction } from "./functions";
 
 declare const process: { env: Record<string, string | undefined> };
@@ -172,9 +171,9 @@ function asText(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
 
-// Deliberately anonymous, read-only access for the user's public preview link.
-// The handler accepts no caller-controlled table, filter, or record arguments.
-export const getWorkCalendar = action({
+// Read-only, signed-in users only. The handler accepts no caller-controlled
+// table, filter, or record arguments.
+export const getWorkCalendar = authenticatedAction({
   args: {},
   returns: v.object({
     items: v.array(
