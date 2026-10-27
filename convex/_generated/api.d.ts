@@ -8,8 +8,10 @@
  * @module
  */
 
-import type * as ViktorSpacesEmail from "../ViktorSpacesEmail.js";
 import type * as auth from "../auth.js";
+import type * as authEmail from "../authEmail.js";
+import type * as authProviders from "../authProviders.js";
+import type * as calendar from "../calendar.js";
 import type * as constants from "../constants.js";
 import type * as functions from "../functions.js";
 import type * as http from "../http.js";
@@ -19,9 +21,7 @@ import type * as spaceSessionAuth from "../spaceSessionAuth.js";
 import type * as users from "../users.js";
 import type * as viktorEdgeHandoffAuth from "../viktorEdgeHandoffAuth.js";
 import type * as viktorMembership from "../viktorMembership.js";
-import type * as viktorSpaceAuthConfig from "../viktorSpaceAuthConfig.js";
 import type * as viktorSpaceAuthEnv from "../viktorSpaceAuthEnv.js";
-import type * as viktorTools from "../viktorTools.js";
 
 import type {
   ApiFromModules,
@@ -30,8 +30,10 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
-  ViktorSpacesEmail: typeof ViktorSpacesEmail;
   auth: typeof auth;
+  authEmail: typeof authEmail;
+  authProviders: typeof authProviders;
+  calendar: typeof calendar;
   constants: typeof constants;
   functions: typeof functions;
   http: typeof http;
@@ -41,9 +43,7 @@ declare const fullApi: ApiFromModules<{
   users: typeof users;
   viktorEdgeHandoffAuth: typeof viktorEdgeHandoffAuth;
   viktorMembership: typeof viktorMembership;
-  viktorSpaceAuthConfig: typeof viktorSpaceAuthConfig;
   viktorSpaceAuthEnv: typeof viktorSpaceAuthEnv;
-  viktorTools: typeof viktorTools;
 }>;
 
 /**

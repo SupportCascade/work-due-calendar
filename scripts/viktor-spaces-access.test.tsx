@@ -98,7 +98,7 @@ const apiMock = {
     users: {
       deleteAccount: deleteAccountMutation,
     },
-    viktorTools: {
+    calendar: {
       getWorkCalendar: Symbol("getWorkCalendar"),
     },
     viktorMembership: {
@@ -1116,80 +1116,6 @@ describe("Viktor Spaces auth template contract", () => {
         VITE_VIKTOR_SPACES_API_URL: "https://auth.example",
       }),
     ).toBe(false);
-  });
-
-  test("configured auth providers honor the deployment provider list", async () => {
-    const { configuredAuthProviders } = await import(
-      "../convex/viktorSpaceAuthConfig"
-    );
-
-    process.env.VIKTOR_SPACES_ACCESS_MODE = "authenticated";
-    process.env.VIKTOR_SPACES_AUTH_PROVIDERS = '["email_password"]';
-    const withoutViktor = configuredAuthProviders();
-    expect(
-      withoutViktor.some(
-        provider => (provider as { id?: string }).id === "viktor",
-      ),
-    ).toBe(false);
-    // Password plus the always-on space_session automation provider. No
-    // edge hand-off: it shares the "viktor" accounts, so it only exists
-    // alongside the OAuth provider.
-    expect(withoutViktor.length).toBe(2);
-    expect(
-      withoutViktor.some(
-        provider => (provider as { id?: string }).id === "space_session",
-      ),
-    ).toBe(true);
-    expect(
-      withoutViktor.some(
-        provider => (provider as { id?: string }).id === "viktor_edge_handoff",
-      ),
-    ).toBe(false);
-
-    process.env.VIKTOR_AUTH_RESOURCE_ID = "space_123";
-    process.env.VIKTOR_AUTH_BASE_URL = "https://auth.example";
-    process.env.VIKTOR_SPACES_AUTH_PROVIDERS = '["viktor"]';
-    const viktorOnly = configuredAuthProviders();
-    expect(
-      viktorOnly.map(provider => (provider as { id?: string }).id),
-    ).toEqual(["viktor", "viktor_edge_handoff", "space_session"]);
-
-    process.env.VIKTOR_SPACES_AUTH_PROVIDERS = '["email_password","viktor"]';
-    const withViktor = configuredAuthProviders();
-    expect(
-      withViktor.some(
-        provider => (provider as { id?: string }).id === "viktor",
-      ),
-    ).toBe(true);
-    expect(withViktor.length).toBe(4);
-
-    process.env.VIKTOR_SPACES_AUTH_PROVIDERS = "[]";
-    expect(() => configuredAuthProviders()).toThrow(
-      "Invalid VIKTOR_SPACES_AUTH_PROVIDERS",
-    );
-
-    process.env.VIKTOR_SPACES_ACCESS_MODE = "public";
-    expect(configuredAuthProviders()).toEqual([]);
-  });
-
-  test("Viktor-only provider registration fails closed without OAuth env", async () => {
-    const { configuredAuthProviders } = await import(
-      "../convex/viktorSpaceAuthConfig"
-    );
-
-    process.env.VIKTOR_SPACES_ACCESS_MODE = "authenticated";
-    process.env.VIKTOR_SPACES_AUTH_PROVIDERS = '["viktor"]';
-    expect(() => configuredAuthProviders()).toThrow(
-      "Viktor OAuth deployment env",
-    );
-
-    process.env.VIKTOR_AUTH_RESOURCE_ID = "space_123";
-    process.env.VIKTOR_AUTH_BASE_URL = "https://auth.example";
-    expect(
-      configuredAuthProviders().map(
-        provider => (provider as { id?: string }).id,
-      ),
-    ).toEqual(["viktor", "viktor_edge_handoff", "space_session"]);
   });
 
   test("custom Auth.js provider preserves resource and keeps token exchange server-side", () => {

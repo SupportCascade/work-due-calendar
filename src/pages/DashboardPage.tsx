@@ -332,7 +332,7 @@ function CollapsiblePanel({
 }
 
 export function DashboardPage() {
-  const getWorkCalendar = useAction(api.viktorTools.getWorkCalendar);
+  const getWorkCalendar = useAction(api.calendar.getWorkCalendar);
   const [items, setItems] = useState<CalendarItem[]>([]);
   const [reports, setReports] = useState<ReportSchedule[]>([]);
   const [syncedAt, setSyncedAt] = useState<Date | null>(null);

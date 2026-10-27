@@ -25,10 +25,13 @@ export function SignUp() {
             const formData = new FormData(e.currentTarget);
             const email = formData.get("email") as string;
             try {
-              await signIn("password", formData);
-              setStep({ email });
+              const { signingIn } = await signIn("password", formData);
+              // Signed straight in when the backend has no email codes set up.
+              if (!signingIn) setStep({ email });
             } catch {
-              setError("Could not create account. Please try again.");
+              setError(
+                "Could not create account. Only approved email addresses can sign up.",
+              );
             } finally {
               setLoading(false);
             }

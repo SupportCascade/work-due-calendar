@@ -56,14 +56,13 @@ describe("authenticated Convex function builders", () => {
     expect(await definition.handler({}, {})).toBe("users:test-user");
   });
 
-  test("protects built-in account and Viktor tool functions", async () => {
-    const [{ deleteAccount }, { generateImage, quickAiSearch }] =
-      await Promise.all([
-        import("../convex/users"),
-        import("../convex/viktorTools"),
-      ]);
+  test("protects built-in account and calendar functions", async () => {
+    const [{ deleteAccount }, { getWorkCalendar }] = await Promise.all([
+      import("../convex/users"),
+      import("../convex/calendar"),
+    ]);
 
-    for (const definition of [deleteAccount, quickAiSearch, generateImage]) {
+    for (const definition of [deleteAccount, getWorkCalendar]) {
       await expect(
         (definition as unknown as FunctionDefinition).handler({}, {}),
       ).rejects.toThrow("Not authenticated");

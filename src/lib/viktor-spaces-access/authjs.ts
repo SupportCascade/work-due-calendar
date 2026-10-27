@@ -17,7 +17,7 @@ export type ViktorAuthJsProfile = {
 
 /**
  * Auth.js-style OAuth provider config consumed by Convex Auth
- * (`convex/viktorSpaceAuthConfig.ts`). "Sign in with Viktor" runs the
+ * (no longer registered on the backend). "Sign in with Viktor" runs the
  * standard authorization-code + PKCE flow against the Viktor OAuth server;
  * Convex Auth handles the redirects, cookies, code exchange, and account
  * creation. Only members of the workspace that owns this Space can complete

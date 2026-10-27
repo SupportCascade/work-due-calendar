@@ -1,93 +1,11 @@
 /**
- * Viktor Tools - Call any Viktor SDK function from your Convex app.
- *
- * Available tools include:
- * - quick_ai_search: AI-powered web search with summarized results
- * - text2im: Generate images from text prompts
- * - file_to_markdown: Convert PDF/DOCX/XLSX files to markdown
- * - And all MCP integration tools configured for your user
- *
- * To add a new tool, first test it to see the response shape.
+ * Work calendar data, read straight from Airtable with the deployment's
+ * AIRTABLE_TOKEN (a personal access token with data.records:read on the base).
  */
 import { v } from "convex/values";
 import { authenticatedAction } from "./functions";
 
 declare const process: { env: Record<string, string | undefined> };
-
-const VIKTOR_API_URL = process.env.VIKTOR_SPACES_API_URL!;
-const PROJECT_NAME = process.env.VIKTOR_SPACES_PROJECT_NAME!;
-const PROJECT_SECRET = process.env.VIKTOR_SPACES_PROJECT_SECRET!;
-// Identifies this space across workspaces (project names are only unique per
-// owner). Set at init; undefined on deployments that predate it, in which
-// case the backend resolves the space from the name + secret.
-const SPACE_ID = process.env.VIKTOR_AUTH_RESOURCE_ID;
-
-async function callTool<T>(
-  role: string,
-  args: Record<string, unknown> = {},
-): Promise<T> {
-  const response = await fetch(
-    `${VIKTOR_API_URL}/api/viktor-spaces/tools/call`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        project_name: PROJECT_NAME,
-        project_secret: PROJECT_SECRET,
-        space_id: SPACE_ID,
-        role,
-        arguments: args,
-      }),
-    },
-  );
-
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}: ${await response.text()}`);
-  }
-
-  const json = await response.json();
-  if (!json.success) {
-    throw new Error(json.error ?? "Tool call failed");
-  }
-  return json.result as T;
-}
-
-export const quickAiSearch = authenticatedAction({
-  args: { query: v.string() },
-  returns: v.string(),
-  handler: async (_ctx, { query }) => {
-    const result = await callTool<{ search_response: string }>(
-      "quick_ai_search",
-      {
-        search_question: query,
-      },
-    );
-    return result.search_response;
-  },
-});
-
-export const generateImage = authenticatedAction({
-  args: {
-    prompt: v.string(),
-    aspectRatio: v.optional(
-      v.union(
-        v.literal("1:1"),
-        v.literal("16:9"),
-        v.literal("9:16"),
-        v.literal("4:3"),
-        v.literal("3:2"),
-      ),
-    ),
-  },
-  returns: v.string(),
-  handler: async (_ctx, { prompt, aspectRatio }) => {
-    const result = await callTool<{ response_text: string }>("text2im", {
-      prompt,
-      aspect_ratio: aspectRatio ?? "1:1",
-    });
-    return result.response_text;
-  },
-});
 
 const AIRTABLE_BASE_ID = "appKzWCRwAuXTXZKd";
 const WORK_ITEMS_TABLE_ID = "tbl4xDrjfZeC6OAqQ";
@@ -97,11 +15,6 @@ const CLIENTS_TABLE_ID = "tblOUMt8gNOiGnZVZ";
 type AirtableRecord = {
   id: string;
   fields?: Record<string, unknown>;
-};
-
-type AirtableToolResult = {
-  content?: string;
-  error?: string;
 };
 
 type CalendarItem = {
@@ -121,50 +34,38 @@ type ReportSchedule = {
   airtableUrl: string;
 };
 
-function parseAirtableRecords(
-  result: AirtableToolResult | AirtableRecord[] | string,
-) {
-  let payload: unknown = result;
-
-  if (typeof payload === "string") {
-    payload = JSON.parse(payload);
-  } else if (
-    typeof payload === "object" &&
-    payload !== null &&
-    !Array.isArray(payload)
-  ) {
-    const toolResult = payload as AirtableToolResult;
-    if (toolResult.error) {
-      throw new Error(toolResult.error);
-    }
-    if (typeof toolResult.content === "string") {
-      payload = JSON.parse(toolResult.content);
-    }
-  }
-
-  if (Array.isArray(payload)) {
-    return payload as AirtableRecord[];
-  }
-  if (
-    payload &&
-    typeof payload === "object" &&
-    "records" in payload &&
-    Array.isArray(payload.records)
-  ) {
-    return payload.records as AirtableRecord[];
-  }
-  throw new Error("Airtable returned an unexpected records response.");
-}
-
 async function listAirtableRecords(tableId: string) {
-  const result = await callTool<AirtableToolResult | AirtableRecord[] | string>(
-    "mcp_pd_airtable_oauth_list_records",
-    {
-      baseId: AIRTABLE_BASE_ID,
-      tableId,
-    },
-  );
-  return parseAirtableRecords(result);
+  const token = process.env.AIRTABLE_TOKEN;
+  if (!token) {
+    throw new Error("AIRTABLE_TOKEN is not configured on this deployment.");
+  }
+
+  const records: AirtableRecord[] = [];
+  let offset: string | undefined;
+  do {
+    const url = new URL(
+      `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${tableId}`,
+    );
+    url.searchParams.set("pageSize", "100");
+    if (offset) url.searchParams.set("offset", offset);
+
+    const response = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) {
+      throw new Error(
+        `Airtable HTTP ${response.status}: ${await response.text()}`,
+      );
+    }
+    const page = (await response.json()) as {
+      records?: AirtableRecord[];
+      offset?: string;
+    };
+    records.push(...(page.records ?? []));
+    offset = page.offset;
+  } while (offset);
+
+  return records;
 }
 
 function asText(value: unknown) {

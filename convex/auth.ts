@@ -3,7 +3,7 @@
 import "./phiLogging";
 import { convexAuth, getAuthUserId } from "@convex-dev/auth/server";
 import { query } from "./_generated/server";
-import { configuredAuthProviders } from "./viktorSpaceAuthConfig";
+import { configuredAuthProviders } from "./authProviders";
 import { configuredJwtDurationMs } from "./viktorSpaceAuthEnv";
 
 declare const process: { env: Record<string, string | undefined> };
@@ -35,9 +35,7 @@ if (jwtPrivateKey) {
   process.env.JWT_PRIVATE_KEY = decodePrivateKey(jwtPrivateKey);
 }
 
-// Providers are resolved from the space's configured provider list
-// (email_password / viktor) plus the `space_session` exchange used by
-// automation and authenticated-screenshot capture. See viktorSpaceAuthConfig.ts.
+// Email + password only, limited to approved addresses; see authProviders.ts.
 // The JWT lifetime is what decides whether a returning member's stored session
 // authenticates with the WebSocket handshake alone or first has to be
 // refreshed; see configuredJwtDurationMs.
