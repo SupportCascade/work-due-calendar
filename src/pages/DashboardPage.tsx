@@ -1,4 +1,3 @@
-import { useAction } from "convex/react";
 import {
   addDays,
   addMonths,
@@ -20,6 +19,7 @@ import {
   EyeOff,
   FileText,
   LoaderCircle,
+  LogOut,
   RefreshCw,
 } from "lucide-react";
 import {
@@ -40,7 +40,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { api } from "../../convex/_generated/api";
 
 type CalendarItem = {
   recordId: string;
@@ -331,8 +330,21 @@ function CollapsiblePanel({
   );
 }
 
-export function DashboardPage() {
-  const getWorkCalendar = useAction(api.calendar.getWorkCalendar);
+type WorkCalendar = {
+  items: CalendarItem[];
+  reports: ReportSchedule[];
+  syncedAt: string;
+};
+
+export function DashboardPage({
+  email,
+  onSignOut,
+  onSessionExpired,
+}: {
+  email: string;
+  onSignOut: () => void;
+  onSessionExpired: () => void;
+}) {
   const [items, setItems] = useState<CalendarItem[]>([]);
   const [reports, setReports] = useState<ReportSchedule[]>([]);
   const [syncedAt, setSyncedAt] = useState<Date | null>(null);
@@ -350,7 +362,13 @@ export function DashboardPage() {
   const refresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      const result = await getWorkCalendar({});
+      const response = await fetch("/api/calendar");
+      if (response.status === 401) {
+        onSessionExpired();
+        return;
+      }
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const result = (await response.json()) as WorkCalendar;
       setItems(result.items);
       setReports(result.reports);
       setSyncedAt(new Date(result.syncedAt));
@@ -362,7 +380,7 @@ export function DashboardPage() {
       setInitialLoading(false);
       setRefreshing(false);
     }
-  }, [getWorkCalendar]);
+  }, [onSessionExpired]);
 
   useEffect(() => {
     void refresh();
@@ -598,6 +616,17 @@ export function DashboardPage() {
                 <RefreshCw className="size-4" aria-hidden="true" />
               )}
               <span className="hidden sm:inline">Refresh</span>
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              className="calendar-toolbar-button"
+              onClick={onSignOut}
+              aria-label={`Sign out ${email}`}
+              title={email}
+            >
+              <LogOut className="size-4" aria-hidden="true" />
+              <span className="hidden sm:inline">Sign out</span>
             </Button>
           </div>
         </div>
