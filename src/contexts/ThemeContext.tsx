@@ -62,7 +62,8 @@ export function ThemeProvider({
       if (next === "light" || next === "dark") setTheme(next);
     };
     window.addEventListener("viktor-embed-theme", handleEmbedTheme);
-    return () => window.removeEventListener("viktor-embed-theme", handleEmbedTheme);
+    return () =>
+      window.removeEventListener("viktor-embed-theme", handleEmbedTheme);
   }, []);
 
   useEffect(() => {

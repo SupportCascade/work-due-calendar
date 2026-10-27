@@ -1,9 +1,9 @@
 /**
  * Work calendar data, read straight from Airtable with AIRTABLE_TOKEN (a
- * personal access token with data.records:read on the base). Signed-in,
- * approved users only.
+ * personal access token with data.records:read on the base). Server only;
+ * the /api/calendar route serves it to signed-in users.
  */
-import { json, sessionEmail } from "./_lib/session.js";
+import "server-only";
 
 const AIRTABLE_BASE_ID = "appKzWCRwAuXTXZKd";
 const WORK_ITEMS_TABLE_ID = "tbl4xDrjfZeC6OAqQ";
@@ -69,7 +69,7 @@ async function listAirtableRecords(tableId: string) {
 function asText(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
-async function loadWorkCalendar() {
+export async function loadWorkCalendar() {
   const [workItemRecords, teamMemberRecords, clientRecords] = await Promise.all(
     [
       listAirtableRecords(WORK_ITEMS_TABLE_ID),
@@ -153,16 +153,4 @@ async function loadWorkCalendar() {
     });
 
   return { items, reports, syncedAt: new Date().toISOString() };
-}
-
-export async function GET(request: Request): Promise<Response> {
-  if (!sessionEmail(request)) {
-    return json({ error: "Not signed in" }, { status: 401 });
-  }
-  try {
-    return json(await loadWorkCalendar());
-  } catch (error) {
-    console.error("Airtable sync failed", error);
-    return json({ error: "Airtable sync failed" }, { status: 502 });
-  }
 }

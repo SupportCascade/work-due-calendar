@@ -1,29 +1,29 @@
 # Work Due Calendar
 
-A read-only calendar of work due dates and client report days, pulled live from Airtable. Hosted on Vercel: a Vite + React frontend plus a few Vercel functions in `api/`.
+A read-only calendar of work due dates and client report days, pulled live from Airtable. Next.js app hosted on Vercel, with email + password sign-in through NextAuth.
 
 ## How it works
 
-- `api/calendar.ts` reads the Work Items, Team Members and Clients tables from Airtable with `AIRTABLE_TOKEN` and returns them to signed-in users only.
-- Sign-in is by emailed link. `api/auth/request-link.ts` emails a 15-minute link (via Resend) to addresses on `AUTH_ALLOWED_EMAILS`; `api/auth/verify.ts` turns it into a 30-day session cookie. Links and cookies are signed with `AUTH_SECRET`; there is no database.
-- Every request re-checks the approved list, so removing an address locks that person out straight away.
+- `src/app/page.tsx` shows the calendar to signed-in users and sends everyone else to `/login`.
+- `src/app/api/calendar/route.ts` reads the Work Items, Team Members and Clients tables from Airtable (`src/lib/airtable.ts`) with `AIRTABLE_TOKEN`, for signed-in users only.
+- `src/lib/auth.ts` is the NextAuth setup. There is no database: accounts are the `AUTH_USERS` setting, a list of emails with hashed passwords. Every request re-checks that list, so removing someone locks them out straight away.
 
-## Settings
+## Managing accounts
 
-See `.env.example` for every setting and what it does. Set them in the Vercel project; nothing secret goes in the repo.
+1. Run `npm run hash-password -- someone@cascadewebsolutions.co` and type their password (12+ characters).
+2. Add the printed `email=scrypt$...` line to `AUTH_USERS` in Vercel, comma-separated from the others. To change a password, replace that person's entry; to remove someone, delete it.
+3. Redeploy (Vercel → Deployments → Redeploy) so the new setting takes effect.
 
 ## Local development
 
 ```bash
 npm install
-vercel env pull .env.local   # copy the project's settings down
-vercel dev                   # site + api/ functions on http://localhost:3000
+cp .env.example .env.local   # fill in the values
+npm run dev                  # http://localhost:3000
 ```
-
-`npm run dev` runs the frontend alone (no `api/`, so you'll only see the sign-in page).
 
 ## Deploying
 
-Pushes to `main` deploy automatically once the GitHub repo is connected to the Vercel project.
+Pushes to `main` deploy automatically once the GitHub repo is connected to the Vercel project. See `.env.example` for the settings it needs.
 
-Before building UI, read `DESIGN.md` — the app's design-system manifest.
+Before building UI, read `DESIGN.md`, the app's design-system manifest.
