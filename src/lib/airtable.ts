@@ -4,6 +4,7 @@
  * the /api/calendar route serves it to signed-in users.
  */
 import "server-only";
+import { unstable_cache } from "next/cache";
 
 const AIRTABLE_BASE_ID = "appKzWCRwAuXTXZKd";
 const WORK_ITEMS_TABLE_ID = "tbl4xDrjfZeC6OAqQ";
@@ -153,4 +154,18 @@ export async function loadWorkCalendar() {
     });
 
   return { items, reports, syncedAt: new Date().toISOString() };
+}
+
+/**
+ * The calendar as of at most `maxAgeSeconds` ago. Each copy is shared by
+ * everyone (Vercel's data cache), so Airtable gets at most one read per
+ * window however many tabs are open, and none while nobody is looking.
+ */
+export function loadCachedWorkCalendar(maxAgeSeconds: number) {
+  const slot = Math.floor(Date.now() / (maxAgeSeconds * 1000));
+  return unstable_cache(
+    loadWorkCalendar,
+    ["work-calendar", String(maxAgeSeconds), String(slot)],
+    { revalidate: maxAgeSeconds },
+  )();
 }

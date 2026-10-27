@@ -30,6 +30,7 @@ import {
   useEffect,
   useId,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { Button } from "@/components/ui/button";
@@ -361,20 +362,28 @@ export function DashboardPage({
   const [refreshing, setRefreshing] = useState(false);
   const [syncError, setSyncError] = useState(false);
 
-  const refresh = useCallback(async () => {
+  const latestSync = useRef(0);
+
+  const refresh = useCallback(async (fresh: boolean) => {
     setRefreshing(true);
     try {
-      const response = await fetch("/api/calendar");
+      const response = await fetch(
+        fresh ? "/api/calendar?fresh" : "/api/calendar",
+      );
       if (response.status === 401) {
         onSessionExpired();
         return;
       }
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const result = (await response.json()) as WorkCalendar;
+      // A poll can return an older shared copy than a Refresh just did.
+      const resultSync = new Date(result.syncedAt).getTime();
+      setSyncError(false);
+      if (resultSync < latestSync.current) return;
+      latestSync.current = resultSync;
       setItems(result.items);
       setReports(result.reports);
       setSyncedAt(new Date(result.syncedAt));
-      setSyncError(false);
     } catch {
       setSyncError(true);
     } finally {
@@ -385,8 +394,8 @@ export function DashboardPage({
   }, [onSessionExpired]);
 
   useEffect(() => {
-    void refresh();
-    const timer = window.setInterval(() => void refresh(), 60_000);
+    void refresh(true);
+    const timer = window.setInterval(() => void refresh(false), 60_000);
     return () => window.clearInterval(timer);
   }, [refresh]);
 
@@ -605,7 +614,7 @@ export function DashboardPage({
               type="button"
               variant="outline"
               className="calendar-toolbar-button"
-              onClick={() => void refresh()}
+              onClick={() => void refresh(true)}
               disabled={refreshing}
               aria-label="Refresh Airtable data"
             >
